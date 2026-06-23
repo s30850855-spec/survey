@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>점심메뉴 Agent Card</title>
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --accent: #e8630a;
+    --accent2: #2d6a4f;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --border: #e0ddd8;
+    --danger: #c0392b;
+    --warn: #d97706;
+    --ok: #2d6a4f;
+    --tag-bg: #fef3e2;
+    --tag-text: #92400e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color: var(--text); }
+
+  .hero {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 36px 40px 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '🍱';
+    position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+    font-size: 80px; opacity: 0.15;
+  }
+  .hero-badge { display: inline-block; background: var(--accent); color: white; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; letter-spacing: 0.05em; margin-bottom: 12px; text-transform: uppercase; }
+  .hero h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+  .hero p { font-size: 14px; color: rgba(255,255,255,0.65); }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* Constraint bar */
+  .constraint-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    margin-bottom: 28px;
+  }
+  .con-item {
+    background: var(--card); border-radius: 12px; padding: 16px;
+    border-left: 4px solid var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .con-item .icon { font-size: 20px; margin-bottom: 6px; }
+  .con-item .label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+  .con-item .value { font-size: 14px; font-weight: 700; color: var(--text); }
+
+  /* Tabs */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 20px; background: var(--card); padding: 5px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .tab-btn {
+    flex: 1; padding: 10px 8px; border: none; background: transparent;
+    border-radius: 9px; font-size: 13px; font-weight: 600; color: var(--muted);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn.active { background: var(--accent); color: white; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Cards */
+  .card { background: var(--card); border-radius: 14px; padding: 22px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .card-title { font-size: 15px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  /* Staff table */
+  .staff-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .staff-table th { text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border); font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; }
+  .staff-table td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .staff-table tr:last-child td { border-bottom: none; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; margin: 1px; }
+  .tag-like { background: #e8f5e9; color: #1b5e20; }
+  .tag-dislike { background: #fce4ec; color: #880e4f; }
+  .tag-allergy { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+  .tag-note { background: #e3f2fd; color: #0d47a1; }
+
+  /* Restaurant TOP3 */
+  .resto-card {
+    background: var(--card); border-radius: 14px; padding: 24px;
+    margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-top: 4px solid var(--border); transition: box-shadow 0.2s;
+  }
+  .resto-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .resto-card.rank1 { border-top-color: #f59e0b; }
+  .resto-card.rank2 { border-top-color: #9ca3af; }
+  .resto-card.rank3 { border-top-color: #cd7c41; }
+  .resto-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+  .rank-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; flex-shrink: 0; }
+  .rank1 .rank-badge { background: #fef3c7; color: #b45309; }
+  .rank2 .rank-badge { background: #f3f4f6; color: #6b7280; }
+  .rank3 .rank-badge { background: #fdf2e5; color: #92400e; }
+  .resto-name { font-size: 18px; font-weight: 800; margin-bottom: 3px; }
+  .resto-type { font-size: 12px; color: var(--muted); font-weight: 600; }
+  .resto-meta { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .meta-chip { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--bg); }
+  .meta-chip.green { color: var(--ok); }
+  .meta-chip.orange { color: var(--warn); }
+  .meta-chip.red { color: var(--danger); }
+
+  .score-bar-wrap { margin-bottom: 14px; }
+  .score-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .score-bar { height: 8px; background: var(--border); border-radius: 10px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--accent), #f97316); transition: width 0.8s; }
+
+  .reason-list { list-style: none; }
+  .reason-list li { padding: 5px 0; font-size: 13px; color: var(--muted); display: flex; align-items: flex-start; gap: 8px; }
+  .reason-list li::before { content: '✓'; color: var(--ok); font-weight: 700; flex-shrink: 0; }
+  .reason-list li.warn::before { content: '⚠'; color: var(--warn); }
+  .reason-list li.bad::before { content: '✗'; color: var(--danger); }
+
+  /* Excluded */
+  .excluded-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .exc-item { background: #fef2f2; border-radius: 10px; padding: 14px; border-left: 3px solid #fca5a5; }
+  .exc-name { font-size: 14px; font-weight: 700; color: var(--danger); margin-bottom: 4px; }
+  .exc-reason { font-size: 12px; color: var(--muted); }
+
+  /* Scripts */
+  .script-box { background: #f8f8f6; border: 1px solid var(--border); border-radius: 10px; padding: 18px; font-size: 13px; line-height: 1.8; font-family: 'Courier New', monospace; white-space: pre-wrap; color: var(--text); margin-bottom: 16px; }
+  .script-label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+
+  /* Notice */
+  .notice-box { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; border-radius: 14px; padding: 24px; }
+  .notice-box h3 { font-size: 16px; font-weight: 800; margin-bottom: 16px; color: #fbbf24; }
+  .notice-body { font-size: 13px; line-height: 2; color: rgba(255,255,255,0.85); white-space: pre-wrap; }
+
+  /* Flow */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin-top: 4px; }
+  .flow-step { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 600; color: var(--text); }
+  .flow-arrow { font-size: 14px; color: var(--muted); padding: 0 6px; }
+
+  /* Copy button */
+  .copy-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--accent); color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  .copy-btn:hover { opacity: 0.9; }
+
+  @media (max-width: 600px) {
+    .constraint-bar { grid-template-columns: 1fr 1fr; }
+    .excluded-grid { grid-template-columns: 1fr; }
+    .hero { padding: 24px 20px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">🤖 AI Agent Card</div>
+  <h1>점심메뉴 추천 에이전트</h1>
+  <p>12명 · 14,000~16,000원 · 12:10~12:55 · 비 예보 · 도보 10분 이내</p>
+</div>
+
+<div class="container">
+
+  <!-- Constraint Bar -->
+  <div class="constraint-bar">
+    <div class="con-item">
+      <div class="icon">👥</div>
+      <div class="label">참석 인원</div>
+      <div class="value">12명</div>
+    </div>
+    <div class="con-item">
+      <div class="icon">💰</div>
+      <div class="label">1인 예산</div>
+      <div class="value">14,000 ~ 16,000원</div>
+    </div>
+    <div class="con-item">
+      <div class="icon">⏱️</div>
+      <div class="label">가용 시간</div>
+      <div class="value">12:10 ~ 12:55 (45분)</div>
+    </div>
+    <div class="con-item">
+      <div class="icon">🌧️</div>
+      <div class="label">이동 조건</div>
+      <div class="value">도보 10분 이내</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('top3')">🏆 추천 TOP 3</button>
+    <button class="tab-btn" onclick="showTab('staff')">👤 참석자 분석</button>
+    <button class="tab-btn" onclick="showTab('excluded')">❌ 제외 메뉴</button>
+    <button class="tab-btn" onclick="showTab('scripts')">📞 스크립트</button>
+    <button class="tab-btn" onclick="showTab('agent')">🤖 에이전트 정보</button>
+  </div>
+
+  <!-- TOP 3 -->
+  <div id="tab-top3" class="tab-content active">
+
+    <div class="resto-card rank1">
+      <div class="resto-header">
+        <div class="rank-badge">1</div>
+        <div>
+          <div class="resto-name">정갈한 한정식 뷔페형 한식당</div>
+          <div class="resto-type">한식 · 뷔페/반상 형태 · 단체 가능</div>
+        </div>
+      </div>
+      <div class="resto-meta">
+        <span class="meta-chip green">✅ 예산 내</span>
+        <span class="meta-chip green">✅ 계산서 발급</span>
+        <span class="meta-chip green">✅ 45분 내 식사 가능</span>
+        <span class="meta-chip orange">⚠️ 사전 예약 필요</span>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>참석자 만족도 예상</span><span style="font-weight:800;color:var(--accent)">91%</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:91%"></div></div>
+      </div>
+      <ul class="reason-list">
+        <li>한식 선호자 5명(김대리·최부장·오매니저·강책임·문대표) 모두 커버</li>
+        <li>뷔페형으로 채식 지향(송사원), 샐러드 선호(박선임) 동시 충족</li>
+        <li>고기·국물·나물 등 다양한 선택지 — 매운 것 기피자(김대리·정사원·유대리) 회피 가능</li>
+        <li>조용하고 정갈한 분위기 → 최부장·문대표 조건 충족</li>
+        <li>단체 계산서 발급 가능 (오매니저·유대리 요구사항)</li>
+        <li class="warn">새우·해산물 메뉴 별도 섹션 확인 필요 (박선임 알러지)</li>
+        <li class="warn">유당 민감 오매니저 — 크림/치즈 계열 불포함 확인 필요</li>
+      </ul>
+    </div>
+
+    <div class="resto-card rank2">
+      <div class="resto-header">
+        <div class="rank-badge">2</div>
+        <div>
+          <div class="resto-name">일식 덮밥·돈카츠 전문점</div>
+          <div class="resto-type">일식 · 단품 / 세트 · 중형 홀</div>
+        </div>
+      </div>
+      <div class="resto-meta">
+        <span class="meta-chip green">✅ 예산 내</span>
+        <span class="meta-chip green">✅ 빠른 서빙 (20~25분)</span>
+        <span class="meta-chip green">✅ 영수증 가능</span>
+        <span class="meta-chip orange">⚠️ 생선 메뉴 공존</span>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>참석자 만족도 예상</span><span style="font-weight:800;color:var(--accent)">83%</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:83%"></div></div>
+      </div>
+      <ul class="reason-list">
+        <li>이책임(일식·덮밥 선호·빠른 식사), 유대리(일식 선호) 최선호</li>
+        <li>한주임(중식·덮밥), 정사원(양식 유사 톤카츠) 수용 가능</li>
+        <li>기름기 있으나 돈카츠/가츠동 계열 → 이책임 기름진 음식 비선호 주의, 카츠는 예외로 대체로 허용됨</li>
+        <li>빠른 서빙 → 남PM 12:50 복귀 조건 가장 안전</li>
+        <li class="warn">한주임 생선 비선호 → 사시미 메뉴 회피, 돈카츠/닭가스 선택 안내 필요</li>
+        <li class="warn">박선임(채소 선호) 만족도 낮을 수 있음 — 텐동 또는 채소튀김 덮밥 권유</li>
+        <li class="warn">문대표·최부장 — 조용한 분위기 여부 확인 필요</li>
+      </ul>
+    </div>
+
+    <div class="resto-card rank3">
+      <div class="resto-header">
+        <div class="rank-badge">3</div>
+        <div>
+          <div class="resto-name">샤부샤부·전골 한식 전문점</div>
+          <div class="resto-type">한식 · 고기/채소 전골 · 단체석 보유</div>
+        </div>
+      </div>
+      <div class="resto-meta">
+        <span class="meta-chip orange">⚠️ 예산 상단 (15,000~16,000)</span>
+        <span class="meta-chip green">✅ 계산서 발급</span>
+        <span class="meta-chip orange">⚠️ 45분 빠듯 (착석 후 35~40분 소요)</span>
+        <span class="meta-chip green">✅ 단체석</span>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-label"><span>참석자 만족도 예상</span><span style="font-weight:800;color:var(--accent)">78%</span></div>
+        <div class="score-bar"><div class="score-fill" style="width:78%"></div></div>
+      </div>
+      <ul class="reason-list">
+        <li>강책임(고기·찌개), 최부장(한식·고기), 오매니저(비빔밥·한식) — 고기·국물 선호자 만족</li>
+        <li>채소·두부 코스 선택 시 송사원(채식 지향), 박선임(채소 선호) 대응 가능</li>
+        <li>문대표 고객 동행 가능성 — 정갈한 단체 좌석 인상 좋음</li>
+        <li class="warn">예산이 16,000원 최대치에 근접 — 음료 추가 시 초과 위험</li>
+        <li class="warn">시간이 가장 빠듯 — 12:10 입장, 12:50 이전 계산 필수 안내</li>
+        <li class="bad">면류 코스 옵션 있을 경우 최부장 기피 → 별도 주문 필요</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Staff Analysis -->
+  <div id="tab-staff" class="tab-content">
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>참석자 취향 및 제약 현황</div>
+      <table class="staff-table">
+        <thead>
+          <tr>
+            <th>이름</th>
+            <th>선호</th>
+            <th>비선호</th>
+            <th>제약/알러지</th>
+            <th>주요 메모</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><b>김대리</b></td><td><span class="tag tag-like">한식</span><span class="tag tag-like">국물</span></td><td><span class="tag tag-dislike">매운음식</span></td><td>—</td><td><span class="tag tag-note">가벼운 식사</span></td></tr>
+          <tr><td><b>이책임</b></td><td><span class="tag tag-like">일식</span><span class="tag tag-like">덮밥</span></td><td><span class="tag tag-dislike">기름진음식</span></td><td>—</td><td><span class="tag tag-note">빠른식사</span></td></tr>
+          <tr><td><b>박선임</b></td><td><span class="tag tag-like">샐러드</span><span class="tag tag-like">분식</span></td><td><span class="tag tag-dislike">해산물</span></td><td><span class="tag tag-allergy">⚠️ 새우알러지</span></td><td><span class="tag tag-note">채소 선호</span></td></tr>
+          <tr><td><b>최부장</b></td><td><span class="tag tag-like">한식</span><span class="tag tag-like">고기</span></td><td><span class="tag tag-dislike">면류</span></td><td>—</td><td><span class="tag tag-note">조용한장소</span></td></tr>
+          <tr><td><b>정사원</b></td><td><span class="tag tag-like">양식</span><span class="tag tag-like">버거</span></td><td><span class="tag tag-dislike">국물</span></td><td>—</td><td><span class="tag tag-note">카페 인접</span></td></tr>
+          <tr><td><b>오매니저</b></td><td><span class="tag tag-like">비빔밥</span><span class="tag tag-like">한식</span></td><td><span class="tag tag-dislike">치즈</span></td><td><span class="tag tag-allergy">⚠️ 유당민감</span></td><td><span class="tag tag-note">계산서필요</span></td></tr>
+          <tr><td><b>한주임</b></td><td><span class="tag tag-like">중식</span><span class="tag tag-like">덮밥</span></td><td><span class="tag tag-dislike">생선</span></td><td>—</td><td><span class="tag tag-note">매운맛 보통</span></td></tr>
+          <tr><td><b>강책임</b></td><td><span class="tag tag-like">고기</span><span class="tag tag-like">찌개</span></td><td><span class="tag tag-dislike">샐러드만</span></td><td>—</td><td><span class="tag tag-note">주차 선호</span></td></tr>
+          <tr><td><b>유대리</b></td><td><span class="tag tag-like">분식</span><span class="tag tag-like">일식</span></td><td><span class="tag tag-dislike">고수</span></td><td>—</td><td><span class="tag tag-note">예산 중요</span></td></tr>
+          <tr><td><b>송사원</b></td><td><span class="tag tag-like">샌드위치</span><span class="tag tag-like">샐러드</span></td><td><span class="tag tag-dislike">매운음식</span></td><td><span class="tag tag-allergy">채식지향</span></td><td><span class="tag tag-note">육류 적게</span></td></tr>
+          <tr><td><b>남PM</b></td><td><span class="tag tag-like">한식</span><span class="tag tag-like">중식</span></td><td><span class="tag tag-dislike">대기긴곳</span></td><td>—</td><td><span class="tag tag-note">12:50 복귀</span></td></tr>
+          <tr><td><b>문대표</b></td><td><span class="tag tag-like">정갈한한식</span></td><td><span class="tag tag-dislike">시끄러운곳</span></td><td>—</td><td><span class="tag tag-note">고객동행가능</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>리스크 요약</div>
+      <table class="staff-table">
+        <thead><tr><th>위험 유형</th><th>해당자</th><th>대응 방법</th></tr></thead>
+        <tbody>
+          <tr><td>🚨 <b>알러지 (새우)</b></td><td>박선임</td><td>해산물 섹션 없는 메뉴 선택 or 별도 주문</td></tr>
+          <tr><td>⚠️ <b>유당 민감</b></td><td>오매니저</td><td>크림·치즈·유제품 메뉴 배제</td></tr>
+          <tr><td>⚠️ <b>채식 지향</b></td><td>송사원</td><td>채소 선택지 반드시 포함된 메뉴</td></tr>
+          <tr><td>⏱️ <b>시간 엄수</b></td><td>남PM (12:50 복귀)</td><td>빠른 서빙 식당 or 1순위 일식 추천</td></tr>
+          <tr><td>📄 <b>계산서 필수</b></td><td>오매니저 / 유대리</td><td>사전 계산서 가능 여부 전화 확인</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Excluded -->
+  <div id="tab-excluded" class="tab-content">
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>제외 메뉴 및 이유</div>
+      <div class="excluded-grid">
+        <div class="exc-item">
+          <div class="exc-name">🚫 매운 한식 (마라·불닭류)</div>
+          <div class="exc-reason">김대리·정사원·유대리·송사원 4명 매운음식 기피. 전체 33% 불만족 예상.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 해산물 전문점 (초밥·회)</div>
+          <div class="exc-reason">박선임 새우 알러지, 한주임 생선 비선호. 알러지 리스크 감수 불가.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 국수·면류 전문점</div>
+          <div class="exc-reason">최부장 면류 비선호. 면류 단일 메뉴는 선택지 부족.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 버거·패스트푸드</div>
+          <div class="exc-reason">문대표 고객 동행 가능, 최부장 분위기 중시. 비즈니스 식사 부적합.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 멕시칸·동남아 식당</div>
+          <div class="exc-reason">유대리 고수 기피, 매운 메뉴 비중 높음. 취향 분산도 큼.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 피자·이탈리안</div>
+          <div class="exc-reason">오매니저 치즈·유당 민감, 강책임 샐러드 위주 우려. 예산 초과 가능성.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 채식 전문점</div>
+          <div class="exc-reason">강책임 고기 선호, 최부장 한식 고기 선호. 소수 의견으로 전체 적용 부적합.</div>
+        </div>
+        <div class="exc-item">
+          <div class="exc-name">🚫 도보 15분 이상 식당</div>
+          <div class="exc-reason">비 예보. 이동 + 우산 소요 시간 포함 시 45분 식사 불가능.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <div id="tab-scripts" class="tab-content">
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>예약 전화 스크립트 (1순위 한정식)</div>
+      <div class="script-label">📞 전화 시 그대로 읽으셔도 됩니다</div>
+      <div class="script-box" id="script1">안녕하세요, 오늘 점심 예약 문의드립니다.
+
+인원: 12명
+시간: 오늘 12시 10분 입장, 12시 50분 이전 식사 완료 예정
+예산: 1인 14,000~16,000원 내외
+
+확인 사항:
+1. 오늘 12시 10분 12명 예약 가능한지요?
+2. 단체 계산서(지출 증빙용) 발급 가능한지요?
+3. 뷔페 구성에 새우 또는 갑각류 포함 여부 알 수 있을까요?
+   (알러지 고객 1분 계십니다)
+4. 유제품(치즈·크림) 없는 메뉴 선택 가능한지요?
+
+감사합니다, 연락처 남겨 드릴게요.</div>
+      <button class="copy-btn" onclick="copyScript('script1')">📋 복사</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>참석자 공지문 (메신저 발송용)</div>
+      <div class="script-label">💬 단체 채팅방 공지</div>
+      <div class="script-box" id="notice1">🍽️ [오늘 점심 안내]
+
+장소: [식당명] (사무실에서 도보 약 ○분)
+시간: 12:10 출발 → 12:50 이전 복귀 예정
+인원: 12명 (예약 완료)
+비용: 1인 ○○,000원 (계산서 처리 예정)
+
+⚠️ 안내사항
+- 오후 13:20 실습 시작 예정이니 12:55까지 자리 복귀 부탁드립니다.
+- 메뉴 선택 시 새우/갑각류, 유제품 관련 개인 주의 부탁드립니다.
+- 우산 지참 권장 (비 예보)
+
+문의: [담당자명] ○○○-○○○○</div>
+      <button class="copy-btn" onclick="copyScript('notice1')">📋 복사</button>
+    </div>
+  </div>
+
+  <!-- Agent Info -->
+  <div id="tab-agent" class="tab-content">
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>에이전트 기본 정보</div>
+      <table class="staff-table">
+        <tr><td style="width:140px;color:var(--muted);font-weight:700">에이전트 이름</td><td><b>LunchMate · 점심 메뉴 추천 에이전트</b></td></tr>
+        <tr><td style="color:var(--muted);font-weight:700">한 줄 소개</td><td>팀원 취향·알러지·예산·시간·날씨를 동시에 고려해 "<b>아무도 크게 불만 없는</b>" 점심 후보를 3개 골라드립니다.</td></tr>
+        <tr><td style="color:var(--muted);font-weight:700">입력 자료</td><td>참석자 명단·취향·알러지 CSV / 식당 후보 목록 / 예산·이동 시간·날씨·일정 조건</td></tr>
+        <tr><td style="color:var(--muted);font-weight:700">최종 승인</td><td>🙋 <b>사람이 직접</b> — 에이전트는 후보와 근거만 제시</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>업무 흐름</div>
+      <div class="flow">
+        <div class="flow-step">1️⃣ 제약조건 확인</div><div class="flow-arrow">→</div>
+        <div class="flow-step">2️⃣ 후보 식당 필터링</div><div class="flow-arrow">→</div>
+        <div class="flow-step">3️⃣ 참석자별 위험 요소 확인</div><div class="flow-arrow">→</div>
+        <div class="flow-step">4️⃣ 최종 후보 3개 선정</div><div class="flow-arrow">→</div>
+        <div class="flow-step">5️⃣ 예약·공지 문구 작성</div><div class="flow-arrow">→</div>
+        <div class="flow-step" style="background:#fef3e2;border-color:var(--accent);color:var(--accent)">6️⃣ 사람 최종 승인 ✅</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="dot"></div>출력물 체크리스트</div>
+      <ul class="reason-list">
+        <li>추천 후보 TOP 3 (점수·근거 포함)</li>
+        <li>참석자별 선호·알러지 분석표</li>
+        <li>제외 후보 및 제외 사유</li>
+        <li>예약 전화 스크립트</li>
+        <li>참석자 공지문 (복사 즉시 사용 가능)</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function copyScript(id) {
+    const text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.target;
+      btn.textContent = '✅ 복사됨!';
+      setTimeout(() => btn.textContent = '📋 복사', 1500);
+    });
+  }
+
+  // Animate score bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.score-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      setTimeout(() => el.style.width = w, 300);
+    });
+  });
+</script>
+</body>
+</html>
